@@ -122,6 +122,7 @@ tasks.named("processResources") {
 
 tasks.named("nativeCompile") {
     dependsOn("setupNativeImage")
+	
 }
 
 tasks.register("instrument") {
@@ -134,4 +135,34 @@ tasks.register("instrument") {
             }
         }
     }
+}
+
+tasks.register("nativeDist") {
+	dependsOn("nativeCompile") 
+	doLast {
+		// Copy .exe and .dll files
+		copy {
+			mkdir("build/dist")
+			from("build/native/nativeCompile")
+			into("build/dist")
+			include("*.exe")
+			include("*.dll")
+		}
+
+		// Print java.home property
+		println(System.getProperty("java.home"))
+
+		// Copy specific files from java.home/lib to build/dist/lib
+		copy {
+			val javaHome = System.getProperty("java.home") ?: throw GradleException("java.home property not found")
+			
+			mkdir("build/dist/lib")
+			from("$javaHome/lib")
+			into("build/dist/lib")
+			include("fontconfig.bfc")
+			include("fontconfig.properties.src")
+			include("psfont.properties.ja")
+			include("psfontj2d.properties")
+		}
+	}
 }
