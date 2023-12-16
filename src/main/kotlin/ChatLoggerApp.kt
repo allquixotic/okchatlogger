@@ -122,7 +122,12 @@ object ChatLoggerApp {
         with(frame) {
             val gai = getAppIcon()
             iconImage = gai
-            Taskbar.getTaskbar().iconImage = gai
+            try {
+                Taskbar.getTaskbar().iconImage = gai
+            }
+            catch(uoe: UnsupportedOperationException) {
+                DebugLogger.log("No taskbar icon image support on this platform")
+            }
             val intervalLabel = JLabel("Interval (sec):")
             val filePathLabel = JLabel("Log File Path:")
             val xLabel = JLabel("X:")
