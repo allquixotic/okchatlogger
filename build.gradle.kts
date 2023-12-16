@@ -43,6 +43,7 @@ dependencies {
     implementation("com.formdev:flatlaf:3.2.5")
     implementation("dev.dirs:directories:26")
     implementation("org.apache.xmlgraphics:batik-transcoder:1.17")
+    implementation("org.apache.commons:commons-exec:1.3")
 }
 
 

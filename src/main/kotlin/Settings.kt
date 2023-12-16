@@ -16,7 +16,7 @@ data object Settings {
     var endpoint: String by Delegates.observable("https://your_domain.cognitiveservices.azure.com") { _, _, _ -> scheduleSave() }
     var apiKey: String by Delegates.observable("abcd1234") { _, _, _ -> scheduleSave() }
     var interval: Int by Delegates.observable(30) { _, _, _ -> scheduleSave() }
-    var logFilePath: String by Delegates.observable(Path.of(dev.dirs.UserDirectories.get().documentDir, "chatlog.txt").toString()) { _, _, _ -> scheduleSave() }
+    var logFilePath: String by Delegates.observable(Path.of(getDocumentDir(), "chatlog.txt").toString()) { _, _, _ -> scheduleSave() }
     var monitor: String by Delegates.observable("") { _, _, _ -> scheduleSave() }
     var x: Int by Delegates.observable(0) { _, _, _ -> scheduleSave() }
     var y: Int by Delegates.observable(0) { _, _, _ -> scheduleSave() }
@@ -24,9 +24,20 @@ data object Settings {
     var height: Int by Delegates.observable(400) { _, _, _ -> scheduleSave() }
 
     private val configPath: String by lazy {
-        val t = Path.of(dev.dirs.ProjectDirectories.from("org", "sokangaming", "chatlogger").configDir, "settings.json").toString()
-        DebugLogger.log("Path to config: $t")
+        val t =
+            if
+                    (org.apache.commons.exec.OS.isFamilyWindows())
+                Path.of(System.getProperty("user.home"), "AppData", "Roaming", "org.sokangaming.chatlogger", "settings.json").toString()
+            else Path.of(dev.dirs.ProjectDirectories.from("org", "sokangaming", "chatlogger").configDir, "settings.json").toString()
         t
+    }
+
+    private fun getDocumentDir(): String {
+        return if (org.apache.commons.exec.OS.isFamilyWindows()) {
+            Path.of(System.getProperty("user.home"), "Documents").toString()
+        } else {
+            dev.dirs.UserDirectories.get().documentDir
+        }
     }
 
     init {
