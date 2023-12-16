@@ -67,8 +67,15 @@ graalvmNative {
     }
 }
 
+val operatingSystem = when {
+    System.getProperty("os.name").lowercase().startsWith("mac", ignoreCase = true) -> "macosx"
+    System.getProperty("os.name").lowercase().startsWith("windows", ignoreCase = true) -> "windows"
+    else -> "linux"
+}
+
 fun executeCommandAndHandleOutput(command: Array<String>): Int {
-    val process = Runtime.getRuntime().exec(command)
+    val gradleCommand = if (operatingSystem == "windows") ".\\gradlew.bat" else "./gradlew"
+    val process = Runtime.getRuntime().exec(arrayOf(gradleCommand, *command))
 
     // Function to handle stream output
     fun handleStream(inputStream: InputStream, output: PrintStream) {
@@ -95,12 +102,6 @@ fun executeCommandAndHandleOutput(command: Array<String>): Int {
     return process.waitFor()
 }
 
-val operatingSystem = when {
-    System.getProperty("os.name").startsWith("Mac", ignoreCase = true) -> "macosx"
-    System.getProperty("os.name").startsWith("Windows", ignoreCase = true) -> "windows"
-    else -> "linux"
-}
-
 tasks.register<Copy>("setupNativeImage") {
     // Define the destination directory
     val destDir = layout.projectDirectory.dir("src/main/resources/META-INF/native-image")
@@ -124,11 +125,11 @@ tasks.named("nativeCompile") {
 
 tasks.register("instrument") {
     doLast {
-        var retval = executeCommandAndHandleOutput(arrayOf("./gradlew", "-Pagent", "run"))
+        var retval = executeCommandAndHandleOutput(arrayOf("-Pagent", "run"))
         if (retval == 0) {
-            retval = executeCommandAndHandleOutput(arrayOf("./gradlew", "metadataCopy", "--task", "run", "--dir", "src/main/resources/META-INF/native-image"))
+            retval = executeCommandAndHandleOutput(arrayOf("metadataCopy", "--task", "run", "--dir", "src/main/resources/META-INF/native-image"))
             if (retval == 0) {
-                retval = executeCommandAndHandleOutput(arrayOf("./gradlew", "nativeCompile"))
+                retval = executeCommandAndHandleOutput(arrayOf("nativeCompile"))
             }
         }
     }
