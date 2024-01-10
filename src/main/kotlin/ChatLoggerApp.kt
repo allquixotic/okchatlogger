@@ -41,6 +41,7 @@ object ChatLoggerApp {
                 Settings.monitor = screenIndex
                 selectedScreen = getScreenById(screenIndex)
             }
+            value = "Screen ${Settings.monitor + 1}"
         }
     }
     private val intervalField by lazy {
@@ -102,6 +103,7 @@ object ChatLoggerApp {
             textProperty().addListener { _, _, newValue ->
                 Settings.apiKey = newValue
             }
+            text = Settings.apiKey
         }
     }
     private val startButton by lazy {

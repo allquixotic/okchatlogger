@@ -32,7 +32,7 @@ class ChatRegionSelector(private val app: ChatLoggerApp) {
                 val rect = Rectangle(0.0, 0.0, 1.0, 1.0)
                 val screenDevice = ChatLoggerApp.getScreenById(screenId)!!
                 val label = Text().apply {
-                    text = "This is screen ${screenId}. Click and drag a rectangle to select a region. Press ESC to cancel."
+                    text = "This is screen ${screenId+1}. Click and drag a rectangle to select a region. Press ESC to cancel."
                     font = Font.font("Serif", 40.0)
                     fill = Color.RED
                     //StackPane.setAlignment(this, javafx.geometry.Pos.CENTER)
@@ -75,14 +75,13 @@ class ChatRegionSelector(private val app: ChatLoggerApp) {
                     val calcW = abs(startPoint!!.x - endPoint!!.x).toInt()
                     val calcH = abs(startPoint!!.y - endPoint!!.y).toInt()
                     ChatLoggerApp.selectedScreen = screenDevice
-                    ChatLoggerApp.screenComboBox.value = "Screen ${ChatLoggerApp.getScreenIdByScreen(screenDevice)}"
+                    ChatLoggerApp.screenComboBox.value = "Screen ${(ChatLoggerApp.getScreenIdByScreen(screenDevice) ?: 1) + 1}"
                     ChatLoggerApp.xField.valueFactory.value = calcX
                     ChatLoggerApp.yField.valueFactory.value = calcY
                     ChatLoggerApp.widthField.valueFactory.value = calcW
                     ChatLoggerApp.heightField.valueFactory.value = calcH
                     ChatLoggerApp.chatRegionFrames.forEach { it.close() }
                     ChatLoggerApp.chatRegionFrames.clear()
-                    ChatLoggerApp.showDefaultPopup()
                 }
 
                 stage.addEventHandler(KeyEvent.KEY_RELEASED) { event ->
