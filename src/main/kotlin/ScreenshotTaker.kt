@@ -2,28 +2,36 @@
  * Copyright (c) 2023 Sean McNamara <smcnam@gmail.com>. Distributed under the terms of Apache License 2.0.
  * See LICENSE.txt for details.
  */
-import java.awt.GraphicsDevice
-import java.awt.Rectangle
-import java.awt.Robot
-import java.awt.image.BufferedImage
-import java.awt.GraphicsEnvironment
+import ChatLoggerApp.getScreenById
+import javafx.scene.image.WritableImage
+import javafx.scene.robot.Robot
+import javafx.geometry.Rectangle2D
+import javafx.stage.Screen
 
 class ScreenshotTaker {
     companion object {
-        fun takeScreenshot(gd: GraphicsDevice, rect: Rectangle): BufferedImage {
-            val (translatedX, translatedY) = getTranslatedCoordinates(gd, rect.x, rect.y)
-            val robot = Robot()
-            return robot.createScreenCapture(Rectangle(translatedX, translatedY, rect.width, rect.height))
+        private fun takeScreenshot(screen: Screen, rect: Rectangle2D): WritableImage {
+            val javafxRobot = Robot()
+            return javafxRobot.getScreenCapture(null, rect)
         }
 
-        private fun getTranslatedCoordinates(gd: GraphicsDevice, x: Int, y: Int): Pair<Int, Int> {
-            val bounds = gd.defaultConfiguration.bounds
-            return Pair(x + bounds.x, y + bounds.y)
+        private fun getTranslatedCoordinates(screen: Screen, x: Double, y: Double): Pair<Double, Double> {
+            val bounds = screen.bounds
+            return Pair(x + bounds.minX, y + bounds.minY)
         }
 
-        fun captureScreenshot(selectedScreen: GraphicsDevice?, chatWindowDimensions: Rectangle): BufferedImage {
-            val gd = selectedScreen ?: GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice
-            return takeScreenshot(gd, chatWindowDimensions)
+        fun captureScreenshot(selectedScreen: Screen?, chatWindowDimensions: Rectangle2D): WritableImage {
+            val screen = selectedScreen ?: Screen.getPrimary()
+            val (translatedX, translatedY) = getTranslatedCoordinates(screen, chatWindowDimensions.minX, chatWindowDimensions.minY)
+            return takeScreenshot(screen, Rectangle2D(translatedX, translatedY, chatWindowDimensions.width, chatWindowDimensions.height))
+        }
+
+        fun captureDefaultScreenshot(): WritableImage {
+            val chatWindowDimensions = Rectangle2D(Settings.x.toDouble(), Settings.y.toDouble(),
+                Settings.width.toDouble(), Settings.height.toDouble()
+            )
+            val screen = getScreenById(Settings.monitor)
+            return captureScreenshot(screen, chatWindowDimensions)
         }
     }
 }

@@ -17,7 +17,7 @@ data object Settings {
     var apiKey: String by Delegates.observable("abcd1234") { _, _, _ -> scheduleSave() }
     var interval: Int by Delegates.observable(30) { _, _, _ -> scheduleSave() }
     var logFilePath: String by Delegates.observable(Path.of(getDocumentDir(), "chatlog.txt").toString()) { _, _, _ -> scheduleSave() }
-    var monitor: String by Delegates.observable("") { _, _, _ -> scheduleSave() }
+    var monitor: Int by Delegates.observable(0) { _, _, _ -> scheduleSave() }
     var x: Int by Delegates.observable(0) { _, _, _ -> scheduleSave() }
     var y: Int by Delegates.observable(0) { _, _, _ -> scheduleSave() }
     var width: Int by Delegates.observable(400) { _, _, _ -> scheduleSave() }
@@ -53,7 +53,7 @@ data object Settings {
             this.apiKey = loadedSettings["apiKey"] as String
             this.interval = loadedSettings["interval"].toString().toDouble().roundToInt()
             this.logFilePath = loadedSettings["logFilePath"] as String
-            this.monitor = loadedSettings["monitor"] as String
+            this.monitor = (loadedSettings["monitor"] as Double).toInt()
             this.x = loadedSettings["x"].toString().toDouble().roundToInt()
             this.y = loadedSettings["y"].toString().toDouble().roundToInt()
             this.width = loadedSettings["width"].toString().toDouble().roundToInt()

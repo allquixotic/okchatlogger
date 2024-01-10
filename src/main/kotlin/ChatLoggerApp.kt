@@ -3,289 +3,282 @@
  * See LICENSE.txt for details.
  */
 
-import org.apache.batik.transcoder.SVGAbstractTranscoder
-import org.apache.batik.transcoder.TranscoderInput
-import org.apache.batik.transcoder.TranscoderOutput
-import java.awt.*
-import java.awt.event.ActionListener
-import java.awt.event.ItemEvent
-import java.awt.image.BufferedImage
-import java.io.File
-import java.util.function.Consumer
-import org.apache.batik.transcoder.image.ImageTranscoder
+import javafx.application.Platform
+import javafx.geometry.Rectangle2D
+import javafx.geometry.Insets
+import javafx.scene.Scene
+import javafx.scene.control.*
+import javafx.scene.image.Image
+import javafx.scene.image.ImageView
+import javafx.scene.layout.HBox
+import javafx.scene.layout.VBox
+import javafx.stage.FileChooser
+import javafx.stage.Screen
+import javafx.stage.Stage
+import jfxtras.styles.jmetro.JMetro
+import jfxtras.styles.jmetro.JMetroStyleClass
+import jfxtras.styles.jmetro.Style
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import javax.swing.*
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
-import javax.swing.text.JTextComponent
+import java.io.File
+import java.util.*
+import kotlin.concurrent.timerTask
 
 object ChatLoggerApp {
-    var screenComboBox = JComboBox<String>()
-    val frame = JFrame("Chat Logger")
-    private val intervalField = JSpinner(SpinnerNumberModel(Settings.interval, 30, 65536, 1)).apply {
-        preferredSize = Dimension(60, 25)
-        addChangeListener { Settings.interval = (value as Number).toInt() }
-    }
-    private val filePathField = JTextField(30).apply {
-        documentListen(this) { text = Settings.logFilePath }
-    }
-    val xField = JSpinner(SpinnerNumberModel(Settings.x, 0, 65536, 1)).apply {
-        addChangeListener { Settings.x = (value as Number).toInt() }
-    }
-    val yField = JSpinner(SpinnerNumberModel(Settings.y, 0, 65536, 1)).apply {
-        addChangeListener { Settings.y = (value as Number).toInt() }
-    }
-    val widthField = JSpinner(SpinnerNumberModel(Settings.width, 1, 65536, 1)).apply {
-        addChangeListener { Settings.width = (value as Number).toInt() }
-    }
-    val heightField = JSpinner(SpinnerNumberModel(Settings.height, 1, 65536, 1)).apply {
-        addChangeListener { Settings.height = (value as Number).toInt() }
-    }
-    private val endpointField = JTextField(30).apply {
-        documentListen(this) { text = Settings.endpoint }
-    }
-    private val apiKeyField = JPasswordField(30).apply {
-        documentListen(this) { text = Settings.apiKey }
+    private val screensMap by lazy {
+        Screen.getScreens().mapIndexed { index, screen ->
+            index to screen
+        }.toMap()
     }
 
-    private val startButton = JButton("Start Logging")
-    private val stopButton = JButton("Stop Logging").apply { isEnabled = false }
-    private val selectRegionButton = JButton("Select Chat Window")
-    private var timer: Timer? = null
-    val chatRegionFrames = mutableListOf<JFrame>()
-    internal var selectedScreen: GraphicsDevice? = null
-    private val panel = JPanel()
-    private val logTextArea = JTextArea(20, 60).apply {
-        isEditable = false
-        wrapStyleWord = true
-        lineWrap = true
+    lateinit var frame: Stage
+    val chatRegionFrames: MutableList<Stage> = mutableListOf()
+    var selectedScreen: Screen? = null
+    val screenComboBox by lazy {
+        ComboBox<String>().apply {
+            items.addAll(screensMap.keys.map { "Screen ${it + 1}" })
+            valueProperty().addListener { _, _, newValue ->
+                val screenIndex = newValue.removePrefix("Screen ").toInt() - 1
+                Settings.monitor = screenIndex
+                selectedScreen = getScreenById(screenIndex)
+            }
+        }
     }
-    private val logScrollPane = JScrollPane(logTextArea).apply {
-        verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_ALWAYS
+    private val intervalField by lazy {
+        Spinner<Int>(30, 65536, Settings.interval, 1).apply {
+            prefWidth = 60.0
+            prefHeight = 25.0
+            valueProperty().addListener { _, _, newValue ->
+                Settings.interval = newValue.toInt()
+            }
+        }
     }
-    private val popupWindowBox = JCheckBox("Show latest screenshot in popup?")
-    private var popupFrame: JFrame? = null
-    private var oldImage: BufferedImage? = null
-    private var logFile: File? = null
+    private val filePathField by lazy {
+        TextField(Settings.logFilePath).apply {
+            prefColumnCount = 30
+            textProperty().addListener { _, _, newValue ->
+                Settings.logFilePath = newValue
+            }
+        }
+    }
+    val xField by lazy {
+        Spinner<Int>(0, 65536, Settings.x, 1).apply {
+            valueProperty().addListener { _, _, newValue ->
+                Settings.x = newValue.toInt()
+            }
+        }
+    }
+    val yField by lazy {
+        Spinner<Int>(0, 65536, Settings.y, 1).apply {
+            valueProperty().addListener { _, _, newValue ->
+                Settings.y = newValue.toInt()
+            }
+        }
+    }
+    val widthField by lazy {
+        Spinner<Int>(1, 65536, Settings.width, 1).apply {
+            valueProperty().addListener { _, _, newValue ->
+                Settings.width = newValue.toInt()
+            }
+        }
+    }
+    val heightField by lazy {
+        Spinner<Int>(1, 65536, Settings.height, 1).apply {
+            valueProperty().addListener { _, _, newValue ->
+                Settings.height = newValue.toInt()
+            }
+        }
+    }
+    private val endpointField by lazy {
+        TextField(Settings.endpoint).apply {
+            prefColumnCount = 30
+            textProperty().addListener { _, _, newValue ->
+                Settings.endpoint = newValue
+            }
+        }
+    }
+    private val apiKeyField by lazy {
+        PasswordField().apply {
+            prefColumnCount = 30
+            textProperty().addListener { _, _, newValue ->
+                Settings.apiKey = newValue
+            }
+        }
+    }
+    private val startButton by lazy {
+        Button("Start Logging").apply {
+            setOnAction { startLogging() }
+        }
+    }
+    private val stopButton by lazy {
+        Button("Stop Logging").apply {
+            isDisable = true
+            setOnAction { stopLogging() }
+        }
+    }
+    private val ssButton by lazy {
+        Button("Test Screenshot").apply {
+            isDisable = false
+            setOnAction { showDefaultPopup() }
+        }
+    }
+    private val selectRegionButton by lazy {
+        Button("Select Chat Window").apply {
+            setOnAction { regionSelector.selectChatRegion() }
+        }
+    }
+    private val logTextArea by lazy {
+        TextArea().apply {
+            isEditable = false
+        }
+    }
+    private val popupWindowBox by lazy {
+        CheckBox("Show latest screenshot in popup?")
+    }
+    private var popupStage: Stage? = null
 
     // Helper class instances
     private val ocr = AzureOcr()
-    private val taker = ScreenshotTaker()
     private var chatLogger: ChatLogger? = null
     private var parser: TextParsing? = null
-    private val regionSelector = ChatRegionSelector(this)
-
-    private fun documentListen(jtc: JTextComponent, doit: Consumer<JTextComponent>) {
-        doit.accept(jtc)
-        jtc.document.addDocumentListener(object : DocumentListener {
-            override fun insertUpdate(e: DocumentEvent?) {
-                doit.accept(jtc)
-            }
-
-            override fun removeUpdate(e: DocumentEvent?) {
-                doit.accept(jtc)
-            }
-
-            override fun changedUpdate(e: DocumentEvent?) {
-                // This method is not needed for plain text components
-            }
-        })
+    private val regionSelector by lazy {
+        ChatRegionSelector(this)
     }
+    private var timer: Timer? = null
+    private var oldImage: Image? = null
+    private var logFile: File? = null
 
-    private fun getAppIcon(): BufferedImage {
-        val svgData = this::class.java.classLoader.getResourceAsStream("kchatlogger.svg")?.readAllBytes()
-        println("Read ${svgData!!.size} bytes of SVG.")
-        val svgInputStream = ByteArrayInputStream(svgData)
-        val inputSvgImage = TranscoderInput(svgInputStream)
-        val imgTranscoder = object : ImageTranscoder() {
-            lateinit var image: BufferedImage
-            override fun createImage(w: Int, h: Int): BufferedImage {
-                return BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB)
-            }
-
-            override fun writeImage(img: BufferedImage, output: TranscoderOutput?) {
-                this.image = img
-            }
-        }
-
-        imgTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_WIDTH, 256f) // Set the width as needed
-        imgTranscoder.addTranscodingHint(SVGAbstractTranscoder.KEY_HEIGHT, 256f) // Set the height as needed
-        val outputStream = ByteArrayOutputStream()
-        val outputSvgImage = TranscoderOutput(outputStream)
-        imgTranscoder.transcode(inputSvgImage, outputSvgImage)
-        return imgTranscoder.image
-    }
-
-    init {
-        DebugLogger.setLogger(logTextArea)
-        with(frame) {
-            val gai = getAppIcon()
-            iconImage = gai
-            try {
-                Taskbar.getTaskbar().iconImage = gai
-            }
-            catch(uoe: UnsupportedOperationException) {
-                DebugLogger.log("No taskbar icon image support on this platform")
-            }
-            val intervalLabel = JLabel("Interval (sec):")
-            val filePathLabel = JLabel("Log File Path:")
-            val xLabel = JLabel("X:")
-            val yLabel = JLabel("Y:")
-            val widthLabel = JLabel("Width:")
-            val heightLabel = JLabel("Height:")
-            val endpointLabel = JLabel("Endpoint:")
-            val apiKeyLabel = JLabel("API Key:")
-            startButton.addActionListener { startLogging() }
-            stopButton.addActionListener { stopLogging() }
-            selectRegionButton.addActionListener { regionSelector.selectChatRegion(it) }
-            val screenLabel = JLabel("Select Monitor")
-            screenComboBox = JComboBox<String>().apply {
-                val screens = GraphicsEnvironment.getLocalGraphicsEnvironment().screenDevices
-                removeAllItems()
-                screens.forEach { addItem(it.iDstring) }
-                addItemListener { it: ItemEvent ->
-                    if (it.stateChange == ItemEvent.SELECTED) {
-                        val selectedID = it.item.toString()
-                        selectedScreen = GraphicsEnvironment.getLocalGraphicsEnvironment().screenDevices.find { it.iDstring == selectedID }
+    fun initializeApp(stage: Stage) {
+        frame = stage
+        frame.title = "Chat Logger App"
+        val pngData = this::class.java.classLoader.getResourceAsStream("kchatlogger.png")?.readAllBytes()
+        frame.icons.add(Image(ByteArrayInputStream(pngData)))
+        val layout = VBox(10.0).apply {
+            padding = Insets(10.0)
+            children.addAll(
+                HBox(10.0, Label("Interval (sec):"), intervalField),
+                HBox(10.0, Label("Log File Path:"), filePathField, Button("Browse").apply {
+                    setOnAction {
+                        val fileChooser = FileChooser()
+                        val selectedFile = fileChooser.showOpenDialog(frame)
+                        if (selectedFile != null) {
+                            filePathField.text = selectedFile.absolutePath
+                        }
                     }
-                }
-            }
-            panel.layout = GridBagLayout()
-            val c = GridBagConstraints().apply { fill = GridBagConstraints.HORIZONTAL; weightx = 1.0; insets = Insets(3, 3, 3, 3) }
-            var row = 0
-            arrayOf(
-                arrayOf(endpointLabel, endpointField), arrayOf(apiKeyLabel, apiKeyField),
-                arrayOf(intervalLabel, intervalField), arrayOf(filePathLabel, filePathField),
-                arrayOf(screenLabel, screenComboBox), arrayOf(xLabel, xField), arrayOf(yLabel, yField),
-                arrayOf(widthLabel, widthField), arrayOf(heightLabel, heightField), arrayOf(popupWindowBox),
-                arrayOf(startButton, stopButton), arrayOf(selectRegionButton)
-            ).forEach {
-                var column = 0
-                it.forEach { component ->
-                    //addToPanel(component, c, column++, row, if (column == 0) GridBagConstraints.WEST else GridBagConstraints.EAST)
-                    addToPanel(component, c, column++, row, GridBagConstraints.WEST)
-                }
-                row++
-            }
-            c.apply { gridwidth = 2 }
-            addToPanel(logScrollPane, c, 0, row++, GridBagConstraints.SOUTH)
-            add(panel)
-            pack()
-            isResizable = false
-            defaultCloseOperation = JFrame.EXIT_ON_CLOSE
+                }),
+                HBox(10.0, Label("Select Monitor"), screenComboBox),
+                HBox(10.0, Label("X:"), xField),
+                HBox(10.0, Label("Y:"), yField),
+                HBox(10.0, Label("Width:"), widthField),
+                HBox(10.0, Label("Height:"), heightField),
+                HBox(10.0, Label("Endpoint:"), endpointField),
+                HBox(10.0, Label("API Key:"), apiKeyField),
+                popupWindowBox,
+                HBox(10.0, startButton, stopButton, ssButton),
+                selectRegionButton,
+                logTextArea
+            )
         }
+
+        DebugLogger.setLogger(logTextArea)
+        // Set the application icon using the PNG image
+        layout.styleClass.add(JMetroStyleClass.BACKGROUND)
+        val scene = Scene(layout)
+        JMetro(scene, Style.DARK)
+        frame.scene = scene
+        frame.setOnCloseRequest { System.exit(0) }
+        frame.show()
     }
 
-    private fun addToPanel(comp: Component, c: GridBagConstraints, x: Int, y: Int, ancho: Int = GridBagConstraints.WEST) {
-        with(c) {
-            gridx = x
-            gridy = y
-            if (comp is JLabel) {
-                weightx = 0.0
-                anchor = GridBagConstraints.WEST
-                fill = GridBagConstraints.NONE
-            } else if (comp is JSpinner || comp is JTextComponent || comp is JComboBox<*>) {
-                weightx = 1.0
-                fill = GridBagConstraints.HORIZONTAL
-                anchor = ancho
-            } else if (comp is JButton || comp is JCheckBox) {
-                // Buttons and checkboxes might need different configurations
-                weightx = 0.0
-                anchor = GridBagConstraints.WEST
-                fill = GridBagConstraints.NONE
-            }
-            insets = Insets(3, 3, 3, 3)
-        }
-        panel.add(comp, c)
+    fun getScreenById(id: Int): javafx.stage.Screen? {
+        return screensMap[id]
     }
 
-
+    fun getScreenIdByScreen(screen: Screen): Int? {
+        return screensMap.entries.firstOrNull { it.value == screen }?.key
+    }
 
     private fun startLogging() {
         Settings.logFilePath = filePathField.text
-        Settings.interval = (intervalField.value as Number).toInt()
-        Settings.x = (xField.value as Number).toInt()
-        Settings.y = (yField.value as Number).toInt()
-        Settings.width = (widthField.value as Number).toInt()
-        Settings.height = (heightField.value as Number).toInt()
+        Settings.interval = intervalField.value
+        Settings.x = xField.value
+        Settings.y = yField.value
+        Settings.width = widthField.value
+        Settings.height = heightField.value
         Settings.endpoint = endpointField.text
-        Settings.apiKey = apiKeyField.password.toString()
-        if (filePathField.text.isEmpty()) {
-            JOptionPane.showMessageDialog(frame, "All fields are required!", "Error", JOptionPane.ERROR_MESSAGE)
+        Settings.apiKey = apiKeyField.text
+
+        if (Settings.logFilePath.isEmpty()) {
+            Alert(Alert.AlertType.ERROR, "All fields are required!").showAndWait()
             return
-        }
-        val interval: Int
-        val x: Int
-        val y: Int
-        val width: Int
-        val height: Int
-        try {
-            interval = (intervalField.value as Number).toInt() * 1000
-            x = (xField.value as Number).toInt()
-            y = (yField.value as Number).toInt()
-            width = (widthField.value as Number).toInt()
-            height = (heightField.value as Number).toInt()
-        } catch (ignored: NumberFormatException) {
-            JOptionPane.showMessageDialog(frame, "Please enter valid numbers for the fields.", "Error", JOptionPane.ERROR_MESSAGE)
-            return
-        }
-        if (interval <= 0 || width <= 0 || height <= 0 || x < 0 || y < 0) {
-            JOptionPane.showMessageDialog(frame, "Interval, width, and height must be positive values. x and y must be non-negative.", "Error", JOptionPane.ERROR_MESSAGE)
-            return
-        }
-        val fn = Settings.logFilePath
-        if (fn.isEmpty()) {
-            JOptionPane.showMessageDialog(frame, "File name cannot be empty!", "Error", JOptionPane.ERROR_MESSAGE)
-            return
-        }
-        if (popupWindowBox.isSelected) {
-            popupFrame = JFrame("Current Screenshot").apply {
-                defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
-            }
         }
 
-        logFile = File(fn)
-        chatLogger = ChatLogger(logFile!!)
-        parser = TextParsing(chatLogger!!)
-        val chatWindowDimensions = Rectangle(x, y, width, height)
-        val tickFn = ActionListener {
-            DebugLogger.log("Interval Tick")
-            val image = ScreenshotTaker.captureScreenshot(selectedScreen, chatWindowDimensions)
-            val sim = ImageSimilarity.calculateMSE(image, oldImage)
-            oldImage = image
-            if (sim >= 0.0 && sim < 100.0) {
-                DebugLogger.log("Image too similar to the last; not re-OCRing.")
-                return@ActionListener
+        val intervalMillis = Settings.interval * 1000L
+        val chatWindowDimensions = Rectangle2D(Settings.x.toDouble(), Settings.y.toDouble(),
+            Settings.width.toDouble(), Settings.height.toDouble()
+        )
+
+        try {
+            if (intervalMillis <= 0 || Settings.width <= 0 || Settings.height <= 0 || Settings.x < 0 || Settings.y < 0) {
+                throw IllegalArgumentException("Interval, width, and height must be positive values. x and y must be non-negative.")
             }
-            if (popupWindowBox.isSelected) {
-                val imageLabel = JLabel(ImageIcon(image))
-                if (popupFrame == null) {
-                    popupFrame = JFrame("Current Screenshot").apply {
-                        defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
+
+            logFile = File(Settings.logFilePath)
+            chatLogger = ChatLogger(logFile!!)
+            parser = TextParsing(chatLogger!!)
+
+            timer = Timer().apply {
+                scheduleAtFixedRate(timerTask {
+                    Platform.runLater {
+                        DebugLogger.log("Interval Tick")
+                        val image = ScreenshotTaker.captureScreenshot(getScreenById(Settings.monitor), chatWindowDimensions)
+                        val sim = ImageSimilarity.calculateMSE(image, oldImage)
+                        oldImage = image
+
+                        if (sim >= 0.0 && sim < 100.0) {
+                            DebugLogger.log("Image too similar to the last; not re-OCRing.")
+                        } else {
+                            showPopup(image)
+                            val text = ocr.performOCR(image)
+                            parser!!.logChat(text)
+                        }
                     }
-                }
-                popupFrame!!.contentPane.removeAll()
-                popupFrame!!.contentPane.add(imageLabel)
-                popupFrame!!.pack()
-                popupFrame!!.isVisible = true
+                }, 0, intervalMillis)
             }
-            val text = ocr.performOCR(image)
-            parser!!.logChat(text)
+
+            startButton.isDisable = true
+            stopButton.isDisable = false
+
+        } catch (e: Exception) {
+            Alert(Alert.AlertType.ERROR, e.message).showAndWait()
         }
-        timer = Timer(interval, tickFn)
-        timer!!.start()
-        startButton.isEnabled = false
-        stopButton.isEnabled = true
-        tickFn.actionPerformed(null)
     }
 
+
     private fun stopLogging() {
-        timer?.stop()
-        startButton.isEnabled = true
-        stopButton.isEnabled = false
-        popupFrame?.dispose()
-        popupFrame = null
+        timer?.cancel()
+        startButton.isDisable = false
+        stopButton.isDisable = true
+        popupStage?.close()
+        popupStage = null
+    }
+
+    fun showPopup(image: Image, shouldShow: Boolean = popupWindowBox.isSelected) {
+        if (shouldShow) {
+            val imageLabel = ImageView(image)
+
+            if (popupStage == null) {
+                popupStage = Stage().apply {
+                    title = "Current Screenshot"
+                }
+            }
+            popupStage?.scene = Scene(VBox(imageLabel))
+            popupStage?.sizeToScene()
+            popupStage?.show()
+        }
+    }
+
+    fun showDefaultPopup() {
+        showPopup(ScreenshotTaker.captureDefaultScreenshot(), true)
     }
 }
 

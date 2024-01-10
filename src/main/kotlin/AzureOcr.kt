@@ -4,24 +4,22 @@
  */
 
 import com.google.gson.Gson
-import java.awt.image.BufferedImage
-import java.io.ByteArrayOutputStream
+import javafx.scene.image.Image
+import org.glavo.png.PNGType
+import org.glavo.png.javafx.PNGJavaFXUtils
 import java.net.URI
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import javax.imageio.ImageIO
 
 class AzureOcr(private val endpoint: String = Settings.endpoint,
                private val apiKey: String = Settings.apiKey) {
 
     private val gson = Gson()
 
-    fun performOCR(image: BufferedImage): String {
+    fun performOCR(image: Image): String {
         // Convert BufferedImage to PNG
-        val baos = ByteArrayOutputStream()
-        ImageIO.write(image, "png", baos)
-        val imageBytes = baos.toByteArray()
+        val imageBytes = PNGJavaFXUtils.writeImageToArray(image, PNGType.RGBA, 9)
 
         // Prepare the request
         val slash = if (endpoint.endsWith("/")) "" else "/"
@@ -41,9 +39,15 @@ class AzureOcr(private val endpoint: String = Settings.endpoint,
 
     private fun extractTextFromResponse(responseBody: String): String {
         val resp = gson.fromJson(responseBody, Map::class.java) as Map<*, *>
-        val readResult = resp["readResult"] as Map<*, *>
-        val extractedText = readResult["content"] as String
-        DebugLogger.log("Azure returned the following:\n========\n${extractedText}\n========")
-        return extractedText
+        if (resp.containsKey("readResult")) {
+            val readResult = resp["readResult"] as Map<*, *>
+            val extractedText = readResult["content"] as String
+            DebugLogger.log("Azure returned the following:\n========\n${extractedText}\n========")
+            return extractedText
+        }
+        else {
+            DebugLogger.log("Azure didn't return a readResult!")
+            return ""
+        }
     }
 }

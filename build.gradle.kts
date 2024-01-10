@@ -1,8 +1,6 @@
-import org.gradle.internal.impldep.org.junit.experimental.categories.Categories.CategoryFilter.include
 import java.io.BufferedReader
 import java.io.InputStream
 import java.io.PrintStream
-import java.time.Duration
 import java.io.InputStreamReader
 
 plugins {
@@ -10,6 +8,7 @@ plugins {
     id("application")
     id("org.graalvm.buildtools.native") version "0.9.28"
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("org.openjfx.javafxplugin") version "0.0.13"
 }
 
 group = "org.sokangaming"
@@ -30,6 +29,11 @@ kotlin {
     jvmToolchain(21)
 }
 
+javafx {
+    version = "21.0.1"
+    modules("javafx.controls", "javafx.graphics")
+}
+
 tasks.jar {
     manifest {
         attributes["Main-Class"] = "Main"
@@ -39,11 +43,12 @@ tasks.jar {
 dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("org.apache.commons:commons-text:1.10.0")
-    implementation("ch.qos.logback:logback-classic:1.4.11")
-    implementation("com.formdev:flatlaf:3.2.5")
+    implementation("ch.qos.logback:logback-classic:1.4.12")
     implementation("dev.dirs:directories:26")
-    implementation("org.apache.xmlgraphics:batik-transcoder:1.17")
     implementation("org.apache.commons:commons-exec:1.3")
+    implementation("org.glavo:simple-png:0.3.0")
+    implementation("org.glavo:simple-png-javafx:0.3.0")
+    implementation("org.jfxtras:jmetro:11.6.16")
 }
 
 

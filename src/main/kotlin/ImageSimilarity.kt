@@ -2,16 +2,19 @@
  * Copyright (c) 2023 Sean McNamara <smcnam@gmail.com>. Distributed under the terms of Apache License 2.0.
  * See LICENSE.txt for details.
  */
-import java.awt.image.BufferedImage
+import javafx.scene.image.Image
+import javafx.scene.image.PixelReader
+import javafx.scene.image.WritableImage
 import kotlin.math.min
 import kotlin.math.pow
 
 object ImageSimilarity {
 
-    fun cropToMatch(img1: BufferedImage, img2: BufferedImage): BufferedImage {
-        val width = min(img1.width, img2.width)
-        val height = min(img1.height, img2.height)
-        return img1.getSubimage(0, 0, width, height)
+    private fun cropToMatch(img1: Image, img2: Image): Image {
+        val width = min(img1.width.toInt(), img2.width.toInt())
+        val height = min(img1.height.toInt(), img2.height.toInt())
+        val reader: PixelReader = img1.pixelReader
+        return WritableImage(reader, width, height)
     }
 
     /**
@@ -22,15 +25,16 @@ object ImageSimilarity {
      * For image sizes we usually use, 100.0 is a good threshold for "different" images.
      * Most images with completely different contents will return values in the thousands.
      */
-    fun calculateMSE(img1: BufferedImage?, img2: BufferedImage?): Double {
+    fun calculateMSE(img1: Image?, img2: Image?): Double {
         if (img1 == null || img2 == null) {
             return -1.0
         }
+
         var img1Temp = img1
         var img2Temp = img2
 
         // Crop the larger image to match the size of the smaller one
-        if (img1Temp.width != img2Temp.width || img1Temp.height != img2Temp.height) {
+        if (img1Temp.width.toInt() != img2Temp.width.toInt() || img1Temp.height.toInt() != img2Temp.height.toInt()) {
             if (img1Temp.width * img1Temp.height < img2Temp.width * img2Temp.height) {
                 img2Temp = cropToMatch(img2Temp, img1Temp)
             } else {
@@ -38,20 +42,19 @@ object ImageSimilarity {
             }
         }
 
+        val pixelReader1: PixelReader = img1Temp.pixelReader
+        val pixelReader2: PixelReader = img2Temp.pixelReader
         var mse = 0.0
-        for (y in 0 until img1Temp.height) {
-            for (x in 0 until img1Temp.width) {
-                val pixel1 = img1Temp.getRGB(x, y)
-                val pixel2 = img2Temp.getRGB(x, y)
-                val red1 = (pixel1 shr 16) and 0xff
-                val green1 = (pixel1 shr 8) and 0xff
-                val blue1 = pixel1 and 0xff
-                val red2 = (pixel2 shr 16) and 0xff
-                val green2 = (pixel2 shr 8) and 0xff
-                val blue2 = pixel2 and 0xff
-                mse += (red1 - red2).toDouble().pow(2.0) + (green1 - green2).toDouble().pow(2.0) + (blue1 - blue2).toDouble().pow(2.0)
+
+        for (y in 0 until img1Temp.height.toInt()) {
+            for (x in 0 until img1Temp.width.toInt()) {
+                val color1 = pixelReader1.getColor(x, y)
+                val color2 = pixelReader2.getColor(x, y)
+
+                mse += (color1.red - color2.red).pow(2.0) + (color1.green - color2.green).pow(2.0) + (color1.blue - color2.blue).pow(2.0)
             }
         }
+
         mse /= (img1Temp.width * img1Temp.height * 3.0)
         return mse
     }

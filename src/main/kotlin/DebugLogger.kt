@@ -3,28 +3,30 @@
  * See LICENSE.txt for details.
  */
 import java.util.concurrent.atomic.AtomicReference
-import javax.swing.JTextArea
-import javax.swing.SwingUtilities
+import javafx.application.Platform
+import javafx.scene.control.TextArea
+import org.slf4j.LoggerFactory
 
 object DebugLogger {
-    private val jta: AtomicReference<JTextArea> = AtomicReference()
-    private val logger = org.slf4j.LoggerFactory.getLogger(ChatLogger::class.java)
+    private val textAreaRef: AtomicReference<TextArea> = AtomicReference()
+    private val logger = LoggerFactory.getLogger(DebugLogger::class.java)
 
     fun log(message: String) {
-        if(jta.get() != null) {
-            SwingUtilities.invokeLater {
-                with(jta.get()) {
-                    append("$message\n")
-                    caretPosition = document.length
+        val currentTextArea = textAreaRef.get()
+        if (currentTextArea != null) {
+            Platform.runLater {
+                with(currentTextArea) {
+                    appendText("$message\n")
+                    selectPositionCaret(text.length)
+                    deselect()
                 }
             }
-        }
-        else {
+        } else {
             logger.warn(message)
         }
     }
 
-    fun setLogger(jta: JTextArea) {
-        this.jta.compareAndSet(null, jta)
+    fun setLogger(textArea: TextArea) {
+        this.textAreaRef.compareAndSet(null, textArea)
     }
 }
