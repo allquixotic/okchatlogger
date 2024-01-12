@@ -2,8 +2,6 @@
  * Copyright (c) 2023 Sean McNamara <smcnam@gmail.com>. Distributed under the terms of Apache License 2.0.
  * See LICENSE.txt for details.
  */
-import Settings.x
-import Settings.y
 import javafx.stage.Screen
 import javafx.stage.Stage
 import javafx.scene.Scene
@@ -11,7 +9,6 @@ import javafx.application.Platform
 import javafx.scene.input.KeyEvent
 import javafx.scene.input.MouseEvent
 import javafx.scene.layout.Pane
-import javafx.scene.layout.StackPane
 import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 import javafx.scene.text.Font
@@ -69,7 +66,7 @@ class ChatRegionSelector(private val app: ChatLoggerApp) {
                     }
                 }
 
-                stage.addEventHandler(MouseEvent.MOUSE_RELEASED) { event ->
+                stage.addEventHandler(MouseEvent.MOUSE_RELEASED) {
                     val calcX = minOf(startPoint!!.x, endPoint!!.x).toInt()
                     val calcY = minOf(startPoint!!.y, endPoint!!.y).toInt()
                     val calcW = abs(startPoint!!.x - endPoint!!.x).toInt()

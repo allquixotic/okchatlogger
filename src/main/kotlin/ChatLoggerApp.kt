@@ -22,6 +22,7 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.util.*
 import kotlin.concurrent.timerTask
+import kotlin.system.exitProcess
 
 object ChatLoggerApp {
     private val screensMap by lazy {
@@ -30,7 +31,7 @@ object ChatLoggerApp {
         }.toMap()
     }
 
-    lateinit var frame: Stage
+    private lateinit var frame: Stage
     val chatRegionFrames: MutableList<Stage> = mutableListOf()
     var selectedScreen: Screen? = null
     val screenComboBox by lazy {
@@ -187,11 +188,11 @@ object ChatLoggerApp {
         val scene = Scene(layout)
         JMetro(scene, Style.DARK)
         frame.scene = scene
-        frame.setOnCloseRequest { System.exit(0) }
+        frame.setOnCloseRequest { exitProcess(0) }
         frame.show()
     }
 
-    fun getScreenById(id: Int): javafx.stage.Screen? {
+    fun getScreenById(id: Int): Screen? {
         return screensMap[id]
     }
 
@@ -264,7 +265,7 @@ object ChatLoggerApp {
         popupStage = null
     }
 
-    fun showPopup(image: Image, shouldShow: Boolean = popupWindowBox.isSelected) {
+    private fun showPopup(image: Image, shouldShow: Boolean = popupWindowBox.isSelected) {
         if (shouldShow) {
             val imageLabel = ImageView(image)
 
@@ -279,7 +280,7 @@ object ChatLoggerApp {
         }
     }
 
-    fun showDefaultPopup() {
+    private fun showDefaultPopup() {
         showPopup(ScreenshotTaker.captureDefaultScreenshot(), true)
     }
 }

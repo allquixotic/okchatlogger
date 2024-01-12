@@ -9,7 +9,7 @@ import java.util.Date
 class ChatLogger(private val logFile: File) {
 
     init {
-        logChat("====Starting Logging on: ${Date().toString()}====")
+        logChat("====Starting Logging on: ${Date()}====")
     }
 
     fun logChat(text: String) {

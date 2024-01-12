@@ -4,7 +4,7 @@ import java.io.PrintStream
 import java.io.InputStreamReader
 
 plugins {
-    id("org.jetbrains.kotlin.jvm") version "1.9.21"
+    id("org.jetbrains.kotlin.jvm") version "1.9.22"
     id("application")
     id("org.graalvm.buildtools.native") version "0.9.28"
     id("com.github.johnrengelman.shadow") version "8.1.1"
@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "org.sokangaming"
-version = "1.0-SNAPSHOT"
+version = "1.0"
 
 application {
     mainClass.set("Main")
@@ -42,10 +42,10 @@ tasks.jar {
 
 dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
-    implementation("org.apache.commons:commons-text:1.10.0")
-    implementation("ch.qos.logback:logback-classic:1.4.12")
+    implementation("org.apache.commons:commons-text:1.11.0")
+    implementation("ch.qos.logback:logback-classic:1.4.14")
     implementation("dev.dirs:directories:26")
-    implementation("org.apache.commons:commons-exec:1.3")
+    implementation("org.apache.commons:commons-exec:1.4.0")
     implementation("org.glavo:simple-png:0.3.0")
     implementation("org.glavo:simple-png-javafx:0.3.0")
     implementation("org.jfxtras:jmetro:11.6.16")
@@ -136,7 +136,7 @@ tasks.register("instrument") {
         if (retval == 0) {
             retval = executeCommandAndHandleOutput(arrayOf("metadataCopy", "--task", "run", "--dir", "src/main/resources/META-INF/native-image"))
             if (retval == 0) {
-                retval = executeCommandAndHandleOutput(arrayOf("nativeCompile"))
+                executeCommandAndHandleOutput(arrayOf("nativeCompile"))
             }
         }
     }

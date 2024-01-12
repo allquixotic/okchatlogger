@@ -8,7 +8,7 @@ class TextParsing(private val chatLogger: ChatLogger) {
     private val prevLines = mutableListOf<String>()
     private var screenshotNum = 0
 
-    fun parseChat(currentText: String): List<String> {
+    private fun parseChat(currentText: String): List<String> {
         val jwd = JaroWinklerDistance()
         return currentText.replace(Regex("\n\n"), "\n")
             .replace(Regex("\n"), "\n").split("\n")

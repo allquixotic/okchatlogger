@@ -10,9 +10,10 @@ import javafx.stage.Screen
 
 class ScreenshotTaker {
     companion object {
-        private fun takeScreenshot(screen: Screen, rect: Rectangle2D): WritableImage {
-            val javafxRobot = Robot()
-            return javafxRobot.getScreenCapture(null, rect)
+        private val robot: Robot by lazy { Robot() }
+
+        private fun takeScreenshot(rect: Rectangle2D): WritableImage {
+            return robot.getScreenCapture(null, rect)
         }
 
         private fun getTranslatedCoordinates(screen: Screen, x: Double, y: Double): Pair<Double, Double> {
@@ -23,7 +24,7 @@ class ScreenshotTaker {
         fun captureScreenshot(selectedScreen: Screen?, chatWindowDimensions: Rectangle2D): WritableImage {
             val screen = selectedScreen ?: Screen.getPrimary()
             val (translatedX, translatedY) = getTranslatedCoordinates(screen, chatWindowDimensions.minX, chatWindowDimensions.minY)
-            return takeScreenshot(screen, Rectangle2D(translatedX, translatedY, chatWindowDimensions.width, chatWindowDimensions.height))
+            return takeScreenshot(Rectangle2D(translatedX, translatedY, chatWindowDimensions.width, chatWindowDimensions.height))
         }
 
         fun captureDefaultScreenshot(): WritableImage {
