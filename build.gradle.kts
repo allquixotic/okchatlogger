@@ -6,9 +6,10 @@ import java.io.InputStreamReader
 plugins {
     id("org.jetbrains.kotlin.jvm") version "1.9.22"
     id("application")
-    id("org.graalvm.buildtools.native") version "0.9.28"
+    //id("org.graalvm.buildtools.native") version "0.9.28"
     id("com.github.johnrengelman.shadow") version "8.1.1"
     id("org.openjfx.javafxplugin") version "0.0.13"
+    id("com.gluonhq.gluonfx-gradle-plugin") version "1.0.22"
 }
 
 group = "org.sokangaming"
@@ -52,26 +53,26 @@ dependencies {
 }
 
 
-graalvmNative {
-    agent {
-        defaultMode.set("standard")
-    }
-    metadataRepository {
-        enabled = true
-    }
-    binaries {
-        all {
-            buildArgs.addAll(
-                listOf(
-                    "--no-fallback",
-                    "--enable-https",
-                    "-Djava.awt.headless=false"
-                )
-            )
-            resources.autodetect()
-        }
-    }
-}
+//graalvmNative {
+//    agent {
+//        defaultMode.set("standard")
+//    }
+//    metadataRepository {
+//        enabled = true
+//    }
+//    binaries {
+//        all {
+//            buildArgs.addAll(
+//                listOf(
+//                    "--no-fallback",
+//                    "--enable-https",
+//                    "-Djava.awt.headless=false"
+//                )
+//            )
+//            resources.autodetect()
+//        }
+//    }
+//}
 
 val operatingSystem = when {
     System.getProperty("os.name").lowercase().startsWith("mac", ignoreCase = true) -> "macosx"

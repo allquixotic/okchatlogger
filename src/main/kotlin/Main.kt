@@ -2,8 +2,6 @@
  * Copyright (c) 2023 Sean McNamara <smcnam@gmail.com>. Distributed under the terms of Apache License 2.0.
  * See LICENSE.txt for details.
  */
-import java.awt.Taskbar
-import java.awt.Toolkit
 import java.io.File
 
 
@@ -11,15 +9,16 @@ class Main {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            if (System.getProperty("os.name").lowercase().contains("mac")) {
-                val tk = Toolkit.getDefaultToolkit()
-                val image: java.awt.Image = tk.getImage(this::class.java.classLoader.getResource("kchatlogger.png"))
-                val taskbar = Taskbar.getTaskbar()
-                taskbar.iconImage = image
-            }
+            //This block is disabled because it doesn't work when native compiling with Gluon.
+//            if (System.getProperty("os.name").lowercase().contains("mac")) {
+//                val tk = Toolkit.getDefaultToolkit()
+//                val image: java.awt.Image = tk.getImage(this::class.java.classLoader.getResource("kchatlogger.png"))
+//                val taskbar = Taskbar.getTaskbar()
+//                taskbar.iconImage = image
+//            }
 
-            //Get rid of AWT
-            System.gc()
+            //Garbage collect of AWT
+            //System.gc()
 
             /*Thread.getAllStackTraces().keys.forEach {
                 println(it.name)
